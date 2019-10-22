@@ -1,6 +1,9 @@
-# ConfluentSchemaRegistry
+# confluent_schema_registry
 
-**TODO: Add description**
+Elixir client for the [Confluent Schema Registry](https://www.confluent.io/confluent-schema-registry).
+
+This talks to the [REST API](https://docs.confluent.io/current/schema-registry/develop/api.html),
+caching the results for performance.
 
 ## Installation
 
@@ -18,4 +21,3 @@ end
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/confluent_schema_registry](https://hexdocs.pm/confluent_schema_registry).
-
