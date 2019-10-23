@@ -52,6 +52,7 @@ defmodule ConfluentSchemaRegistry do
     end
   end
 
+
   @doc """
   Get the schema string identified by the input ID.
 
@@ -140,7 +141,7 @@ defmodule ConfluentSchemaRegistry do
 
   ```
   {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, "test") # latest
-  {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, "test", version)
+  {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, "test", 1)
   ```
 
   Returns a map with the following keys:
