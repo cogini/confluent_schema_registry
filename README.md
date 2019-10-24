@@ -27,15 +27,66 @@ registry, then four bytes for the schema id, then the data.
 
 ### Producer
 
-On startup, a producer looks up the latest version of the schema matching the
-"subject" associated with the topic it is writing on using `get_schema/3`.
-It encodes the data to binary format using the schema, then appends the schema
-id to the binary and sends it to Kafka.
+On startup, a producer looks up the version of the schema matching the
+subject associated with the topic it is writing on. It encodes the data to
+binary format using the schema, then appends the schema id to the binary and
+sends it to Kafka.
+
+There are a couple of different options for how to get the schema, depending
+on the policy and permissions for updating schemas.
+
+`is_registered/3` checks if a schema has already been registered under the
+specified subject. If so, it returns the registration.
 
 ```elixir
-{:ok, result} = ConfluentSchemaRegistry.get_schema(client, "test", "latest")
-schema = result["schema"]
-schema_id = result["id"]
+ schema = "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}"
+case ConfluentSchemaRegistry.is_registered(client, "test", schema) do
+  {:ok, reg} ->
+    # Found
+    schema = reg["schema"]
+    schema_id = reg["id"]
+  {:error, 404, %{"error_code" => 40401}} ->
+    # Subject not found
+  {:error, 404, %{"error_code" => 40403}} ->
+    # Schema not found
+  {:error, code, reason} ->
+    # Other error
+end
+
+If the schema hasn't been registered, then the producer can attempt to
+register it using `register_schema/3`. If it is successful, it returns the
+schema id. It can be called multiple times, and will return the same schema id.
+
+```elixir
+case ConfluentSchemaRegistry.register_schema(client, "test", schema) do
+  {:ok, schema_id} ->
+    # Already registered
+  {:error, 409, reason} ->
+    # Conflict -- Incompatible Avro schema
+  {:error, 422, reason} ->
+    # Unprocessable Entity, Invalid Avro schema
+  {:error, code, reason} ->
+    # Other error
+end
+
+Another option is to use `get_schema/3` to read the latest registered schema
+for the subject. You might do this when schema registrations are manually managed.
+
+```elixir
+case ConfluentSchemaRegistry.get_schema(client, "test", "latest") do
+  {:ok, reg} ->
+    # Already registered
+    schema = reg["schema"]
+    schema_id = reg["id"]
+  {:error, 404, %{"error_code" => 40401}} ->
+    # Subject not found
+  {:error, 404, %{"error_code" => 40402}} ->
+    # Version not found
+  {:error, 422, reason} ->
+    # Unprocessable Entity, Invalid Avro version
+  {:error, code, reason} ->
+    # Other error
+end
 ```
 
 ### Consumer
@@ -45,20 +96,44 @@ in the registry using `get_schema/1`, getting the schema which was used to write
 It then decodes the binary using the schema.
 
 ```elixir
+# TODO: serialize through GenServer
 {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, 21)
 ```
 
 ### Cache
 
 In long running processes, the schema may be updated, and we should use the latest
-version when writing data. The cache periodically contacts the registry to get
+version when reading data. The cache periodically contacts the registry to get
 the latest version of the schema.
+
+Calls to the cache are serialized via the cache GenServer process. This prevents
+a "thundering herd" problem, where multiple processes simultaneously try to
+hit the registry on startup, e.g. one per topic partition.
+
+For a consumer:
 
 ```elixir
 {:ok, pid} = ConfluentSchemaRegistry.Cache.start_link([])
 client = ConfluentSchemaRegistry.client()
+
+# Get specific schema id, cached forever
 {:ok, schema} = ConfluentSchemaRegistry.Cache.get_schema(client, 21)
 
+# Get specific latest schema for subject, cached for ttl
+{:ok, reg} = ConfluentSchemaRegistry.Cache.get_schema(client, "test", "latest")
+```
+
+For a producer:
+
+```elixir
+{:ok, pid} = ConfluentSchemaRegistry.Cache.start_link([])
+client = ConfluentSchemaRegistry.client()
+
+# Get result of registration test, cached forever
+{:ok, reg} = ConfluentSchemaRegistry.Cache.is_registered(client, "test", schema)
+
+# Get specific latest schema for subject, cached for ttl
+{:ok, reg} = ConfluentSchemaRegistry.Cache.get_schema(client, "test", "latest")
 ```
 
 ## Installation

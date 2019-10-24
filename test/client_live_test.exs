@@ -54,5 +54,4 @@ defmodule ClientLiveTest do
     # {:ok, _version} = ConfluentSchemaRegistry.delete_version(client, "test") # latest
     # assert length(versions) >= 1
   end
-
 end

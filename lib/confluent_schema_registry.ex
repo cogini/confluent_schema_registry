@@ -48,8 +48,14 @@ defmodule ConfluentSchemaRegistry do
 
     middleware = opts_middleware ++ [
       {Tesla.Middleware.BaseUrl, base_url},
-      {Tesla.Middleware.Headers, [{"content-type", "application/vnd.schemaregistry.v1+json"}]},
-      {Tesla.Middleware.JSON, decode_content_types: ["application/vnd.schemaregistry.v1+json"]},
+      {Tesla.Middleware.Headers, [
+        {"content-type", "application/vnd.schemaregistry.v1+json"},
+        {"accept", "application/vnd.schemaregistry.v1+json, application/vnd.schemaregistry+json, application/json"}
+      ]},
+      {Tesla.Middleware.JSON, decode_content_types: [
+        "application/vnd.schemaregistry.v1+json",
+        "application/vnd.schemaregistry+json"
+      ]},
     ] ++ basic_auth(opts)
 
     Tesla.client(middleware, adapter)

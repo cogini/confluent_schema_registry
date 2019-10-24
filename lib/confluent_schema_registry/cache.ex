@@ -11,49 +11,27 @@ defmodule ConfluentSchemaRegistry.Cache do
 
   require Logger
 
+  # Public API
+
   @doc "Cached version of `ConfluentSchemaRegistry.get_schema/2`"
   def get_schema(client, id) when is_integer(id) do
-    mfa = {m, f, a} = {ConfluentSchemaRegistry, :get_schema, [client, id]}
-    case cache_lookup(mfa) do
-      {_expires, _ttl, value} ->
-        {:ok, value}
-      _ ->
-        case apply(m, f, a) do
-          {:ok, value} = result ->
-            cache_insert(mfa, value, :infinity)
-            result
-          error ->
-            error
-        end
-    end
+    GenServer.call(__MODULE__, {:get_schema, client, id})
   end
 
   @doc "Cached version of `ConfluentSchemaRegistry.get_schema/3`"
   def get_schema(client, subject, version \\ "latest") do
-    mfa = {m, f, a} = {ConfluentSchemaRegistry, :get_schema, [client, subject, version]}
-    case cache_lookup(mfa) do
-      {_expires, _ttl, value} ->
-        {:ok, value}
-      _ ->
-        case apply(m, f, a) do
-          {:ok, value} = result ->
-            case version do
-              "latest" ->
-                cache_insert(mfa, value, @ttl)
-              _ ->
-                cache_insert(mfa, value, :infinity)
-            end
-            result
-          error ->
-            error
-        end
-    end
+    GenServer.call(__MODULE__, {:get_schema, client, subject, version})
+  end
+
+  @doc "Cached version of `ConfluentSchemaRegistry.is_registered/3`"
+  def is_registered(client, subject, schema) do
+    GenServer.call(__MODULE__, {:is_registered, client, subject, schema})
   end
 
   # GenServer callbacks
 
   def start_link(args, opts \\ []) do
-    GenServer.start_link(__MODULE__, args, opts)
+    GenServer.start_link(__MODULE__, args, Keyword.merge([name: __MODULE__], opts))
   end
 
   @impl true
@@ -71,6 +49,69 @@ defmodule ConfluentSchemaRegistry.Cache do
     }
 
     {:ok, state}
+  end
+
+  @impl true
+  def handle_call({:get_schema, client, id}, _from, state) do
+    mfa = {m, f, a} = {ConfluentSchemaRegistry, :get_schema, [client, id]}
+    result =
+      case cache_lookup(mfa) do
+        {_expires, _ttl, value} ->
+          {:ok, value}
+        _ ->
+          case apply(m, f, a) do
+            {:ok, value} = result ->
+              cache_insert(mfa, value, :infinity)
+              result
+            error ->
+              error
+          end
+      end
+
+    {:reply, result, state}
+  end
+
+  def handle_call({:get_schema, client, subject, version}, _from, state) do
+    mfa = {m, f, a} = {ConfluentSchemaRegistry, :get_schema, [client, subject, version]}
+    result =
+      case cache_lookup(mfa) do
+        {_expires, _ttl, value} ->
+          {:ok, value}
+        _ ->
+          case apply(m, f, a) do
+            {:ok, value} = result ->
+              case version do
+                "latest" ->
+                  cache_insert(mfa, value, @ttl)
+                _ ->
+                  cache_insert(mfa, value, :infinity)
+              end
+              result
+            error ->
+              error
+          end
+      end
+
+    {:reply, result, state}
+  end
+
+  def handle_call({:is_registered, client, subject, schema}, _from, state) do
+    mfa = {m, f, a} = {ConfluentSchemaRegistry, :is_registered, [client, subject, schema]}
+    result =
+      case cache_lookup(mfa) do
+        {_expires, _ttl, value} ->
+          {:ok, value}
+        _ ->
+          case apply(m, f, a) do
+            {:ok, value} = result ->
+              cache_insert(mfa, value, :infinity)
+              result
+            error ->
+              error
+          end
+      end
+
+    {:reply, result, state}
   end
 
   @impl true
@@ -100,7 +141,7 @@ defmodule ConfluentSchemaRegistry.Cache do
       {:ok, new_value} ->
         # Logger.debug("New value for #{inspect key}")
         cache_insert(key, new_value, ttl, now + ttl)
-      error ->
+      _error ->
         # Logger.debug("Error calling #{inspect key}: #{inspect error}")
         nil
     end
