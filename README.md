@@ -2,8 +2,13 @@
 
 Elixir client for the [Confluent Schema Registry](https://www.confluent.io/confluent-schema-registry).
 
-This talks to the [REST API](https://docs.confluent.io/current/schema-registry/develop/api.html),
-caching the results for performance.
+It implements the full [REST API](https://docs.confluent.io/current/schema-registry/develop/api.html).
+
+It uses the [Tesla](https://github.com/teamon/tesla) HTTP client library, and so supports
+HTTP authentication, and other configuration flexibility, e.g. selecting the underlying HTTP library (e.g. Hackney)
+and configuring it for e.g. SSL.
+
+It includes an ETS cache for results of schema lookups.
 
 ## Installation
 
