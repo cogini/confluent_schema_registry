@@ -59,7 +59,7 @@ defmodule ConfluentSchemaRegistry.Cache do
   @impl true
   def init(args) do
     refresh_cycle = (args[:refresh_cycle] || @refresh_cycle) * 1000
-    Logger.info("Starting with refresh cycle #{refresh_cycle}")
+    # Logger.info("Starting with refresh cycle #{refresh_cycle}")
 
     :ets.new(__MODULE__, [:named_table, :set, :public, {:read_concurrency, true}])
 
@@ -95,13 +95,13 @@ defmodule ConfluentSchemaRegistry.Cache do
   defp refresh_cache({{m, f, a} = key, {expires, ttl, value}}, now) when now >= expires do
     case apply(m, f, a) do
       {:ok, new_value} when new_value == value ->
-        Logger.debug("Up to date for #{inspect key}")
+        # Logger.debug("Up to date for #{inspect key}")
         cache_insert(key, new_value, ttl, now + ttl)
       {:ok, new_value} ->
-        Logger.debug("New value for #{inspect key}")
+        # Logger.debug("New value for #{inspect key}")
         cache_insert(key, new_value, ttl, now + ttl)
       error ->
-        Logger.debug("Error calling #{inspect key}: #{inspect error}")
+        # Logger.debug("Error calling #{inspect key}: #{inspect error}")
         nil
     end
   end
