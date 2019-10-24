@@ -4,14 +4,13 @@ Elixir client for the [Confluent Schema Registry](https://www.confluent.io/confl
 
 It implements the full [REST API](https://docs.confluent.io/current/schema-registry/develop/api.html).
 
-It uses the [Tesla](https://github.com/teamon/tesla) HTTP client library, and
-so supports HTTP authentication, and other configuration flexibility, e.g.
-selecting the underlying HTTP library (e.g. Hackney) and configuring it for
-e.g. SSL.
+It uses the [Tesla](https://github.com/teamon/tesla) HTTP client library.
+This supports HTTP authentication and other configuration flexibility, e.g.
+selecting the underlying HTTP library (e.g. Hackney) and SSL.
 
 It includes an ETS cache for results of schema lookups.
 
-Thanks to [Schemex](https://hex.pm/packages/schemex).
+Thanks to [Schemex](https://hex.pm/packages/schemex) for inspiration.
 
 ## Usage
 
@@ -52,6 +51,7 @@ case ConfluentSchemaRegistry.is_registered(client, "test", schema) do
   {:error, code, reason} ->
     # Other error
 end
+```
 
 If the schema hasn't been registered, then the producer can attempt to
 register it using `register_schema/3`. If it is successful, it returns the
