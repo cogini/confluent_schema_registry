@@ -172,6 +172,23 @@ defmodule ConfluentSchemaRegistry do
   * version (int) -- Version of the returned schema
   * schema (string) -- The Avro schema string
 
+  ```
+  case ConfluentSchemaRegistry.get_schema(client, "test", "latest") do
+    {:ok, reg} ->
+      # Already registered
+      schema = reg["schema"]
+      schema_id = reg["id"]
+    {:error, 404, %{"error_code" => 40401}} ->
+      # Subject not found
+    {:error, 404, %{"error_code" => 40402}} ->
+      # Version not found
+    {:error, 422, reason} ->
+      # Unprocessable Entity, Invalid Avro version
+    {:error, code, reason} ->
+      # Other error
+  end
+  ```
+
   ## Examples
 
       iex> ConfluentSchemaRegistry.get_schema(client, "test")
@@ -213,6 +230,19 @@ defmodule ConfluentSchemaRegistry do
 
   Returns the integer id.
 
+  ```
+  case ConfluentSchemaRegistry.register_schema(client, "test", schema) do
+    {:ok, schema_id} ->
+      # Already registered
+    {:error, 409, reason} ->
+      # Conflict -- Incompatible Avro schema
+    {:error, 422, reason} ->
+      # Unprocessable Entity, Invalid Avro schema
+    {:error, code, reason} ->
+      # Other error
+  end
+  ```
+
   ## Examples
 
       iex> ConfluentSchemaRegistry.register_schema(client, "test", schema)
@@ -241,6 +271,22 @@ defmodule ConfluentSchemaRegistry do
   * id (int) -- Globally unique identifier of the schema
   * version (int) -- Version of the returned schema
   * schema (string) -- The Avro schema string
+
+  ```
+  schema = "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}"
+  case ConfluentSchemaRegistry.is_registered(client, "test", schema) do
+    {:ok, reg} ->
+      # Found
+      schema = reg["schema"]
+      schema_id = reg["id"]
+    {:error, 404, %{"error_code" => 40401}} ->
+      # Subject not found
+    {:error, 404, %{"error_code" => 40403}} ->
+      # Schema not found
+    {:error, code, reason} ->
+      # Other error
+  end
+  ```
 
   ## Examples
 

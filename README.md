@@ -68,6 +68,7 @@ case ConfluentSchemaRegistry.register_schema(client, "test", schema) do
   {:error, code, reason} ->
     # Other error
 end
+```
 
 Another option is to use `get_schema/3` to read the latest registered schema
 for the subject. You might do this when schema registrations are manually managed.
