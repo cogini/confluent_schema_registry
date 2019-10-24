@@ -1,5 +1,6 @@
-defmodule ConfluentSchemaRegistryTest do
-  use ConfluentSchemaRegistry.ClientCase, async: true
+defmodule ClientTest do
+
+  use ExUnit.Case
 
   import Tesla.Mock
 
@@ -7,6 +8,8 @@ defmodule ConfluentSchemaRegistryTest do
   # https://docs.confluent.io/current/schema-registry/develop/api.html
 
   setup do
+    client = ConfluentSchemaRegistry.client(adapter: Tesla.Mock)
+
     mock fn
       %{method: :get, url: "http://localhost:8081/schemas/ids/1"} ->
         json(%{"schema" => "{\"type\": \"string\"}"})
@@ -66,7 +69,7 @@ defmodule ConfluentSchemaRegistryTest do
         json(%{"compatibilityLevel" => "FULL"})
     end
 
-    :ok
+    {:ok, client: client}
   end
 
   test "get_schema id", %{client: client} do
@@ -86,7 +89,7 @@ defmodule ConfluentSchemaRegistryTest do
   end
 
   test "get_schema subject", %{client: client} do
-    schema = %{name: "test", version: 1, schema: "{\"type\": \"string\"}"}
+    schema = %{"name" => "test", "version" => 1, "schema" => "{\"type\": \"string\"}"}
     {:ok, schema2} = ConfluentSchemaRegistry.get_schema(client, "test", 1)
     assert schema == schema2
 
@@ -99,7 +102,7 @@ defmodule ConfluentSchemaRegistryTest do
   end
 
   test "is_registered", %{client: client} do
-    response = %{ subject: "test", id: 1, version: 3, schema: """
+    response = %{"subject" => "test", "id" => 1, "version" => 3, "schema" => """
       {
         \"type\": \"record\",
         \"name\": \"test\",

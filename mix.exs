@@ -21,9 +21,12 @@ defmodule ConfluentSchemaRegistry.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger] ++ extra_applications(Mix.env())
     ]
   end
+
+  defp extra_applications(:test), do: [:hackney]
+  defp extra_applications(_),     do: []
 
   # Specifies which paths to compile per environment
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -35,7 +38,7 @@ defmodule ConfluentSchemaRegistry.MixProject do
       {:ex_doc, "~> 0.19.2", only: :dev, runtime: false},
       {:tesla, "~> 1.3"},
       {:jason, "~> 1.0"},
-      {:hackney, "~> 1.14", only: :dev},
+      {:hackney, "~> 1.14", only: [:dev, :test]},
       {:dialyxir, "~> 0.5.1", only: [:dev, :test], runtime: false},
       {:telemetry, "~> 0.4.0"},
       # {:dep_from_hexpm, "~> 0.3.0"},

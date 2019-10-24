@@ -6,14 +6,8 @@ defmodule ConfluentSchemaRegistry.ClientCase do
 
   use ExUnit.CaseTemplate
 
-  # using do
-  #   quote do
-  #   end
-  # end
-
   setup _tags do
-    client = ConfluentSchemaRegistry.client()
-
+    client = ConfluentSchemaRegistry.client(adapter: Tesla.Mock)
     {:ok, client: client}
   end
 end

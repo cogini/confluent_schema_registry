@@ -13,30 +13,46 @@ defmodule ConfluentSchemaRegistry do
   @type version :: pos_integer | binary
   @type level :: binary
 
-  @doc """
-  Get client for specified options.
+  @doc ~S"""
+  Create client to talk to Schema Registry.
 
   Options are:
-  * base_url: URL of schema registry (optiona), default "http://localhost:8081"
+
+  * base_url: URL of schema registry (optiona, default "http://localhost:8081")
   * username: username for BasicAuth (optional)
   * password: password for BasicAuth (optional)
   * adapter: Tesla adapter config
+  * middleware: List of additional middleware module config (optional)
 
-  ```
-  client = ConfluentSchemaRegistry.client(base_url: "https://registry.example.com:8081/")
-  ```
+  ## Examples
+
+      iex> client = ConfluentSchemaRegistry.client()
+      %Tesla.Client{
+        adapter: nil,
+        fun: nil,
+        post: [],
+        pre: [
+          {Tesla.Middleware.BaseUrl, :call, ["http://localhost:8081"]},
+          {Tesla.Middleware.Headers, :call,
+           [[{"content-type", "application/vnd.schemaregistry.v1+json"}]]},
+          {Tesla.Middleware.JSON, :call,
+           [[decode_content_types: ["application/vnd.schemaregistry.v1+json"]]]}
+        ]
+      }
   """
   @spec client(Keyword.t) :: Tesla.Client.t
   def client(opts \\ []) do
     base_url = opts[:base_url] || "http://localhost:8081"
+    opts_middleware = opts[:middleware] || []
+    adapter = opts[:adapter]
 
-    middleware = [
+    middleware = opts_middleware ++ [
       {Tesla.Middleware.BaseUrl, base_url},
-      {Tesla.Middleware.JSON, engine_opts: [keys: :atoms!]},
-      {Tesla.Middleware.Headers, [{"content-type", "application/vnd.schemaregistry.v1+json"}]}
+      {Tesla.Middleware.Headers, [{"content-type", "application/vnd.schemaregistry.v1+json"}]},
+      {Tesla.Middleware.JSON, decode_content_types: ["application/vnd.schemaregistry.v1+json"]},
     ] ++ basic_auth(opts)
 
-    Tesla.client(middleware, opts[:adapter])
+    Tesla.client(middleware, adapter)
   end
 
   # Configure Tesla.Middleware.BasicAuth
@@ -53,37 +69,39 @@ defmodule ConfluentSchemaRegistry do
   end
 
 
-  @doc """
+  @doc ~S"""
   Get the schema string identified by the input ID.
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#get--schemas-ids-int-%20id
 
-  ```
-  {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, 1)
-  ```
-
   Returns binary schema.
-  """
 
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.get_schema(client, 21)
+      {:ok, "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}"}
+
+  """
   @spec get_schema(Tesla.Client.t, id) :: {:ok, schema} | {:error, code, reason}
   def get_schema(client, id) when is_integer(id) do
     case do_get(client, "/schemas/ids/#{id}") do
-      {:ok, %{schema: value}} -> {:ok, value}
+      {:ok, %{"schema" => value}} -> {:ok, value}
       {:ok, value} -> {:error, 1, "Unexpected response: " <> value}
       error -> error
     end
   end
 
-  @doc """
+  @doc ~S"""
   Get a list of registered subjects.
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#get--subjects
 
-  ```
-  {:ok, ["subject1", "subject2"]} = ConfluentSchemaRegistry.get_subjects(client)
-  ```
-
   Returns list of subject name strings.
+
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.get_subjects(client)
+      {:ok, ["test"]}
 
   """
   @spec get_subjects(Tesla.Client.t) :: {:ok, list(subject)} | {:error, code, reason}
@@ -94,7 +112,7 @@ defmodule ConfluentSchemaRegistry do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Get a list of versions registered under the specified subject.
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#get--subjects-(string-%20subject)-versions
@@ -113,18 +131,20 @@ defmodule ConfluentSchemaRegistry do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Deletes the specified subject and its associated compatibility level if registered.
   It is recommended to use this API only when a topic needs to be recycled or
   in development environment.
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#delete--subjects-(string-%20subject)
 
-  ```
-  {:ok, [1, 2, 3, 4]} = ConfluentSchemaRegistry.delete_subject(client, "test")
-  ```
-
   Returns list of integer ids.
+
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.delete_subject(client, "test")
+      {:ok, [1]}
+
   """
   @spec delete_subject(Tesla.Client.t, subject) :: {:ok, list(id)} | {:error, code, reason}
   def delete_subject(client, subject) do
@@ -134,15 +154,10 @@ defmodule ConfluentSchemaRegistry do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Get a specific version of the schema registered under this subject
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#delete--subjects-(string-%20subject)
-
-  ```
-  {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, "test") # latest
-  {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, "test", 1)
-  ```
 
   Returns a map with the following keys:
 
@@ -150,6 +165,27 @@ defmodule ConfluentSchemaRegistry do
   * id (int) -- Globally unique identifier of the schema
   * version (int) -- Version of the returned schema
   * schema (string) -- The Avro schema string
+
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.get_schema(client, "test")
+      {:ok,
+       %{
+         "id" => 21,
+         "schema" => "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}",
+         "subject" => "test",
+         "version" => 13
+       }}
+
+      iex> ConfluentSchemaRegistry.get_schema(client, "test", 13)
+      {:ok,
+       %{
+         "id" => 21,
+         "schema" => "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}",
+         "subject" => "test",
+         "version" => 13
+       }}
+
   """
   @spec get_schema(Tesla.Client.t, subject, version) ::
     {:ok, map} | {:error, code, reason}
@@ -163,37 +199,35 @@ defmodule ConfluentSchemaRegistry do
   # NOTE: /subjects/#{subject}/versions/#{version}/schema not implemented, as
   # it's redundant with get_schema/3
 
-  @doc """
+  @doc ~S"""
   Register a new schema under the specified subject. If successfully
   registered, this returns the unique identifier of this schema in the registry.
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#post--subjects-(string-%20subject)-versions
 
-  ```
-  {:ok, schema_id} = ConfluentSchemaRegistry.register_schema(client, "test", schema)
-  ```
-
   Returns the integer id.
+
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.register_schema(client, "test", schema)
+      {:ok, 21}
+
   """
   @spec register_schema(Tesla.Client.t, subject, schema) :: {:ok, id} | {:error, code, reason}
   def register_schema(client, subject, schema) do
     case do_post(client, "/subjects/#{subject}/versions", %{schema: schema}) do
-      {:ok, %{id: value}} -> {:ok, value}
+      {:ok, %{"id" => value}} -> {:ok, value}
       {:ok, value} -> {:error, 1, "Unexpected response: " <> value}
       error -> error
     end
   end
 
-  @doc """
+  @doc ~S"""
   Check if a schema has already been registered under the specified subject. If
   so, this returns the schema string along with its globally unique identifier,
   its version under this subject and the subject name.
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#post--subjects-(string-%20subject)
-
-  ```
-  {:ok, response} = ConfluentSchemaRegistry.is_registered(client, "test", "schema")
-  ```
 
   Returns map with the following keys:
 
@@ -201,6 +235,21 @@ defmodule ConfluentSchemaRegistry do
   * id (int) -- Globally unique identifier of the schema
   * version (int) -- Version of the returned schema
   * schema (string) -- The Avro schema string
+
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.is_registered(client, "test", schema)
+      {:ok,
+       %{
+         "id" => 21,
+         "schema" => "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}",
+         "subject" => "test",
+         "version" => 1
+       }}
+
+      iex> ConfluentSchemaRegistry.is_registered(client, "test2", schema)
+      {:error, 404, %{"error_code" => 40401, "message" => "Subject not found. ..."}}
+
   """
   @spec is_registered(Tesla.Client.t, subject, schema) :: {:ok, map} | {:error, code, reason}
   def is_registered(client, subject, schema) do
@@ -210,7 +259,7 @@ defmodule ConfluentSchemaRegistry do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Deletes a specific version of the schema registered under this subject. This
   only deletes the version and the schema ID remains intact making it still
   possible to decode data using the schema ID.
@@ -233,7 +282,7 @@ defmodule ConfluentSchemaRegistry do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Test input schema against a particular version of a subject's schema for
   compatibility. Note that the compatibility level applied for the check is the
   configured compatibility level for the subject (`get_compatibility/2`).
@@ -242,23 +291,30 @@ defmodule ConfluentSchemaRegistry do
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#post--compatibility-subjects-(string-%20subject)-versions-(versionId-%20version)
 
-  ```
-  {:ok, is_compatible} = ConfluentSchemaRegistry.is_compatible(client, subject, schema) # latest
-  {:ok, is_compatible} = ConfluentSchemaRegistry.is_compatible(client, subject, schema, version)
-  ```
-
   Returns boolean.
+
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.is_compatible(client, "test", schema)
+      {:ok, true}
+
+      iex> ConfluentSchemaRegistry.is_compatible(client, "test", schema, "latest")
+      {:ok, true}
+
+      iex> ConfluentSchemaRegistry.is_compatible(client, "test", schema, 1)
+      {:ok, true}
+
   """
   @spec is_compatible(Tesla.Client.t, subject, schema, version) :: {:ok, boolean} | {:error, code, reason}
   def is_compatible(client, subject, schema, version \\ "latest") do
     case do_post(client, "/compatibility/subjects/#{subject}/versions/#{version}", %{schema: schema}) do
-      {:ok, %{is_compatible: value}} -> {:ok, value}
+      {:ok, %{"is_compatible" => value}} -> {:ok, value}
       {:ok, value} -> {:error, 1, "Unexpected response: " <> value}
       error -> error
     end
   end
 
-  @doc """
+  @doc ~S"""
   Update global compatibility level.
 
   Level is a string which must be one of BACKWARD, BACKWARD_TRANSITIVE, FORWARD,
@@ -266,23 +322,25 @@ defmodule ConfluentSchemaRegistry do
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#put--config
 
-  ```
-  {:ok, "FULL"} = ConfluentSchemaRegistry.update_compatibility(client, "FULL")
-  ```
-
   Returns string.
+
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.update_compatibility(client, "test", "FULL")
+      {:ok, "FULL"}
+
   """
   @spec update_compatibility(Tesla.Client.t, level) :: {:ok, level} | {:error, code, reason}
     when level: binary, code: non_neg_integer, reason: any
   def update_compatibility(client, level) do
     case do_put(client, "/config", %{compatibility: level}) do
-      {:ok, %{compatibility: value}} -> {:ok, value}
+      {:ok, %{"compatibility" => value}} -> {:ok, value}
       {:ok, value} -> {:error, 1, "Unexpected response: " <> value}
       error -> error
     end
   end
 
-  @doc """
+  @doc ~S"""
   Get global compatibility level.
 
   Level is a string which will be one of BACKWARD, BACKWARD_TRANSITIVE, FORWARD,
@@ -290,24 +348,25 @@ defmodule ConfluentSchemaRegistry do
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#put--config
 
-  ```
-  {:ok, "FULL"} = ConfluentSchemaRegistry.get_compatiblity(client)
-  ```
-
   Returns string.
+
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.get_compatibility(client)
+      {:ok, "BACKWARD"}
 
   """
   @spec get_compatibility(Tesla.Client.t) :: {:ok, level} | {:error, code, reason}
     when level: binary, code: non_neg_integer, reason: any
   def get_compatibility(client) do
     case do_get(client, "/config") do
-      {:ok, %{compatibilityLevel: value}} -> {:ok, value}
+      {:ok, %{"compatibilityLevel" => value}} -> {:ok, value}
       {:ok, value} -> {:error, 1, "Unexpected response: #{inspect value}"}
       error -> error
     end
   end
 
-  @doc """
+  @doc ~S"""
   Update compatibility level for the specified subject.
 
   Leve is a string which must be one of BACKWARD, BACKWARD_TRANSITIVE, FORWARD,
@@ -315,24 +374,25 @@ defmodule ConfluentSchemaRegistry do
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#put--config
 
-  ```
-  {:ok, "FULL"} = ConfluentSchemaRegistry.update_compatibility(client, "test", "FULL")
-  ```
-
   Returns string.
+
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.update_compatibility(client, "test", "FULL")
+      {:ok, "FULL"}
 
   """
   @spec update_compatibility(Tesla.Client.t, subject, level) ::
     {:ok, level} | {:error, code, reason}
   def update_compatibility(client, subject, level) do
     case do_put(client, "/config/#{subject}", %{compatibility: level}) do
-      {:ok, %{compatibility: value}} -> {:ok, value}
+      {:ok, %{"compatibility" => value}} -> {:ok, value}
       {:ok, value} -> {:error, 1, "Unexpected response: #{inspect value}"}
       error -> error
     end
   end
 
-  @doc """
+  @doc ~S"""
   Get compatibility level for a subject.
 
   Level is a string which will be one of BACKWARD, BACKWARD_TRANSITIVE, FORWARD,
@@ -340,17 +400,19 @@ defmodule ConfluentSchemaRegistry do
 
   https://docs.confluent.io/current/schema-registry/develop/api.html#put--config
 
-  ```
-  {:ok, "FULL"} = ConfluentSchemaRegistry.get_compatiblity(client, subject)
-  ```
-
   Returns string.
+  #
+  ## Examples
+
+      iex> ConfluentSchemaRegistry.get_compatiblity(client, "test")
+      {:ok, "FULL"}
+
   """
   @spec get_compatibility(Tesla.Client.t, subject) ::
     {:ok, level} | {:error, code, reason}
   def get_compatibility(client, subject) do
     case do_get(client, "/config/#{subject}") do
-      {:ok, %{compatibilityLevel: value}} -> {:ok, value}
+      {:ok, %{"compatibilityLevel" => value}} -> {:ok, value}
       {:ok, value} -> {:error, 1, "Unexpected response: " <> value}
       error -> error
     end
