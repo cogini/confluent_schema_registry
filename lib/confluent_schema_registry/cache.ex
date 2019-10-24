@@ -18,7 +18,7 @@ defmodule ConfluentSchemaRegistry.Cache do
   @impl true
   def init(args) do
     refresh_cycle = (args[:refresh_cycle] || @refresh_cycle) * 1000
-    Logger.notice("Starting with refresh cycle #{refresh_cycle}")
+    Logger.info("Starting with refresh cycle #{refresh_cycle}")
 
     :ets.new(__MODULE__, [:named_table, :set, :public, {:read_concurrency, true}])
 
@@ -122,7 +122,7 @@ defmodule ConfluentSchemaRegistry.Cache do
   end
 
   @doc "Cached version of `ConfluentSchemaRegistry.get_schema/3`"
-  def get_schema(client, subject, "latest") do
+  def get_schema(client, subject, version = "latest") do
     mfa = {m, f, a} = {ConfluentSchemaRegistry, :get_schema, [client, subject, version]}
     case cache_lookup(mfa) do
       {_expires, _ttl, value} ->
