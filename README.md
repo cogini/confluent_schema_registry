@@ -97,7 +97,6 @@ in the registry using `get_schema/1`, getting the schema which was used to write
 It then decodes the binary using the schema.
 
 ```elixir
-# TODO: serialize through GenServer
 {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, 21)
 ```
 
