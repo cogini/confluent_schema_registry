@@ -24,7 +24,7 @@ defmodule ClientLiveTest do
     {:ok, result} = ConfluentSchemaRegistry.is_registered(client, "test", schema)
     assert result["subject"] == "test"
     {:error, 404, error} = ConfluentSchemaRegistry.is_registered(client, "test2", schema)
-    assert error["error_code"] == 40401
+    assert error["error_code"] == 40_401
 
     {:ok, subjects} = ConfluentSchemaRegistry.get_subjects(client)
     assert "test" in subjects
