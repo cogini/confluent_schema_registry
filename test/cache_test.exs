@@ -5,14 +5,15 @@ defmodule CacheTest do
   @moduletag :live
 
   # Test cache
-  # This can't be mocked because it uses a different process for the GenServer
 
   setup do
+    # {:ok, _pid} = ConfluentSchemaRegistry.Cache.start_link([dets_dir: "/tmp"])
     {:ok, _pid} = ConfluentSchemaRegistry.Cache.start_link([])
 
     # client = ConfluentSchemaRegistry.client(middleware: [Tesla.Middleware.Logger])
     client = ConfluentSchemaRegistry.client()
 
+    # Tesla.Mock doesn't work because it uses a different process for the GenServer
     # mock fn
     #   %{method: :get, url: "http://localhost:8081/schemas/ids/1"} ->
     #     schema = "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}"
@@ -31,18 +32,14 @@ defmodule CacheTest do
   test "cache", %{client: client} do
     schema = "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}"
 
-    cache = ConfluentSchemaRegistry.Cache.dump()
-    assert length(cache) == 0
-
-
     assert {:ok, schema} == ConfluentSchemaRegistry.Cache.get_schema(client, 21)
 
     cache = ConfluentSchemaRegistry.Cache.dump()
-    assert length(cache) == 1
+    refute Enum.empty?(cache)
+
 
     key = {ConfluentSchemaRegistry, :get_schema, [client, 21]}
     assert {:infinity, :infinity, schema} == ConfluentSchemaRegistry.Cache.cache_lookup(key)
-
 
     {:ok, versions} = ConfluentSchemaRegistry.get_versions(client, "test")
     {:ok, result} = ConfluentSchemaRegistry.Cache.get_schema(client, "test", List.last(versions))
@@ -60,6 +57,10 @@ defmodule CacheTest do
     key = {ConfluentSchemaRegistry, :get_schema, [client, "test", "latest"]}
     {_expires, ttl, _result} = ConfluentSchemaRegistry.Cache.cache_lookup(key)
     assert ttl == 3600
+
+    {:ok, result} = ConfluentSchemaRegistry.Cache.is_registered(client, "test", schema)
+    assert result["schema"] == schema
+    assert result["subject"] == "test"
 
   end
 end

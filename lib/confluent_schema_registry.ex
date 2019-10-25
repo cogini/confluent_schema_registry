@@ -68,7 +68,7 @@ defmodule ConfluentSchemaRegistry do
       auth_opts = opts
                   |> Keyword.take([:username, :password])
                   |> Map.new()
-      [ {Tesla.Middleware.BasicAuth, auth_opts} ]
+      [{Tesla.Middleware.BasicAuth, auth_opts}]
     else
       []
     end
@@ -453,10 +453,10 @@ defmodule ConfluentSchemaRegistry do
   https://docs.confluent.io/current/schema-registry/develop/api.html#put--config
 
   Returns string.
-  #
+
   ## Examples
 
-      iex> ConfluentSchemaRegistry.get_compatiblity(client, "test")
+      iex> ConfluentSchemaRegistry.get_compatibility(client, "test")
       {:ok, "FULL"}
 
   """
@@ -475,72 +475,42 @@ defmodule ConfluentSchemaRegistry do
 
   @spec do_get(Tesla.Client.t, binary) :: {:ok, any} | {:error, code, reason}
   defp do_get(client, url) do
-    case Tesla.get(client, url) do
-      {:ok, response} ->
-        case response do
-          %{status: 200, body: body} ->
-            {:ok, body}
-          %{status: status, body: body} ->
-            {:error, status, body}
-        end
-      {:error, reason} ->
-        {:error, 0, reason}
-    end
+    tesla_response(Tesla.get(client, url))
   end
 
   @spec do_delete(Tesla.Client.t, binary) :: {:ok, any} | {:error, code, reason}
   defp do_delete(client, url) do
-    case Tesla.delete(client, url) do
-      {:ok, response} ->
-        case response do
-          %{status: 200, body: body} ->
-            {:ok, body}
-          %{status: status, body: body} ->
-            {:error, status, body}
-        end
-      {:error, reason} ->
-        {:error, 0, reason}
-    end
+    tesla_response(Tesla.delete(client, url))
   end
 
   @spec do_post(Tesla.Client.t, binary, any) :: {:ok, any} | {:error, code, reason}
+  defp do_post(client, url, data) when is_binary(data) do
+    tesla_response(Tesla.post(client, url, data))
+  end
   defp do_post(client, url, data) do
     case Jason.encode(data) do
       {:ok, encoded} ->
-        case Tesla.post(client, url, encoded) do
-          {:ok, response} ->
-            case response do
-              %{status: 200, body: result} ->
-                {:ok, result}
-              %{status: status, body: error} ->
-                {:error, status, error}
-            end
-          {:error, reason} ->
-            {:error, 0, reason}
-        end
+        do_post(client, url, encoded)
       {:error, reason} ->
         {:error, 0, reason}
     end
   end
 
   @spec do_put(Tesla.Client.t, binary, any) :: {:ok, any} | {:error, code, reason}
+  defp do_put(client, url, data) when is_binary(data) do
+    tesla_response(Tesla.put(client, url, data))
+  end
   defp do_put(client, url, data) do
     case Jason.encode(data) do
       {:ok, encoded} ->
-        case Tesla.put(client, url, encoded) do
-          {:ok, response} ->
-            case response do
-              %{status: 200, body: body} ->
-                {:ok, body}
-              %{status: status, body: body} ->
-                {:error, status, body}
-            end
-          {:error, reason} ->
-            {:error, 0, reason}
-        end
+        do_put(client, url, encoded)
       {:error, reason} ->
         {:error, 0, reason}
     end
   end
+
+  defp tesla_response({:ok, %{status: 200, body: body}}), do: {:ok, body}
+  defp tesla_response({:ok, %{status: status, body: body}}), do: {:error, status, body}
+  defp tesla_response({:error, reason}), do: {:error, 0, reason}
 
 end

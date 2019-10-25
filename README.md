@@ -1,6 +1,6 @@
 # confluent_schema_registry
 
-Elixir client for the [Confluent Schema Registry](https://www.confluent.io/confluent-schema-registry).
+Elixir client for the [Confluent® Schema Registry](https://www.confluent.io/confluent-schema-registry).
 
 It implements the full [REST API](https://docs.confluent.io/current/schema-registry/develop/api.html).
 
@@ -10,7 +10,8 @@ selecting the underlying HTTP library (e.g. Hackney) and SSL.
 
 It includes an ETS cache for results of schema lookups.
 
-Thanks to [Schemex](https://hex.pm/packages/schemex) for inspiration.
+Thanks to [Schemex](https://hex.pm/packages/schemex) and [Avrora](https://github.com/Strech/avrora)
+for inspiration.
 
 ## Usage
 
@@ -146,10 +147,19 @@ def deps do
 end
 ```
 
+### Optional dependencies
+
+By default, Tesla uses the [httpc](http://erlang.org/doc/man/httpc.html) HTTP client
+which comes with OTP. It has issues with e.g. validating SSL certificates, so I recommend
+using [hackney](https://hex.pm/packages/hackney). Configure it as documented in
+[Tesla.Adapter.Hackney](https://hexdocs.pm/tesla/Tesla.Adapter.Hackney.html).
+
+In order to encode and decode [Avro]((http://avro.apache.org/)), install
+[erlavro](https://hex.pm/packages/erlavro).
+
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at [https://hexdocs.pm/confluent_schema_registry](https://hexdocs.pm/confluent_schema_registry).
-
 
 ## Configuration
 
@@ -159,23 +169,15 @@ Add it to your supervision tree:
 
 ```elixir
 children = [
-  ConfluentSchemaRegistry.Cache
+  {ConfluentSchemaRegistry.Cache, [ttl: 3600, refresh_cycle: 60, cache_dir: "/var/cache/myapp"]}
 ]
 
 Supervisor.start_link(children, strategy: :one_for_one)
 ```
 
-Configure the cache in `config/config.exs` or an environment specific file:
-
-```elixir
-config :confluent_schema_registry,
-  :cache_ttl: 3600,
-  :cache_refresh_cycle: 60
-```
-
-* `cache_ttl` - Time in seconds to cache lookups for "latest" schemas, default 3600
-* `cache_refresh_cycle` - Time in seconds to check if latest values have changed
-
+* `_ttl` - Time in seconds to cache lookups for "latest" schemas, default 3600
+* `refresh_cycle` - Time in seconds to check if latest values have changed, default 60
+* `cache_dir` - Directory to use for persistent disk cache, default no cache
 
 You can also configure [Tesla](https://hexdocs.pm/tesla/readme.html), e.g.:
 
