@@ -145,4 +145,8 @@ defmodule ClientTest do
     assert {:ok, "FULL"} == ConfluentSchemaRegistry.update_compatibility(client, "test", "FULL")
   end
 
+  test "get_compatibility subject", %{client: client} do
+    assert {:ok, "FULL"} == ConfluentSchemaRegistry.get_compatibility(client, "test")
+  end
+
 end
