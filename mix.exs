@@ -37,16 +37,14 @@ defmodule ConfluentSchemaRegistry.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, "~> 0.19.2", only: :dev, runtime: false},
-      {:tesla, "~> 1.3"},
-      {:jason, "~> 1.0"},
-      {:hackney, "~> 1.14", only: [:dev, :test]},
-      {:dialyxir, "~> 0.5.1", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.1", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 0.5.1", only: [:dev, :test], runtime: false},
+      {:ex_doc, "~> 0.19.2", only: :dev, runtime: false},
       {:excoveralls, "~> 0.12.0", only: [:dev, :test], runtime: false},
+      {:hackney, "~> 1.14", only: [:dev, :test]},
+      {:jason, "~> 1.0"},
       {:telemetry, "~> 0.4.0"},
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      {:tesla, "~> 1.3"},
     ]
   end
   defp description do
