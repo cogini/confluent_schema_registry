@@ -1,6 +1,8 @@
 defmodule ConfluentSchemaRegistry.MixProject do
   use Mix.Project
 
+  @github "https://github.com/cogini/confluent_schema_registry"
+
   def project do
     [
       app: :confluent_schema_registry,
@@ -11,8 +13,8 @@ defmodule ConfluentSchemaRegistry.MixProject do
       start_permanent: Mix.env() == :prod,
       description: description(),
       package: package(),
-      source_url: "https://github.com/cogini/confluent_schema_registry",
-      homepage_url: "https://github.com/cogini/confluent_schema_registry",
+      source_url: @github,
+      homepage_url: @github,
       deps: deps(),
       docs: docs(),
       test_coverage: [tool: ExCoveralls],
@@ -38,7 +40,7 @@ defmodule ConfluentSchemaRegistry.MixProject do
   defp deps do
     [
       {:credo, "~> 1.1", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 0.5.1", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 0.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.19.2", only: :dev, runtime: false},
       {:excoveralls, "~> 0.12.0", only: [:dev, :test], runtime: false},
       {:hackney, "~> 1.14", only: [:dev, :test]},
@@ -47,6 +49,7 @@ defmodule ConfluentSchemaRegistry.MixProject do
       {:tesla, "~> 1.3"},
     ]
   end
+
   defp description do
     "Client for Confluent Schema Registry"
   end
@@ -55,13 +58,13 @@ defmodule ConfluentSchemaRegistry.MixProject do
     [
       maintainers: ["Jake Morrison"],
       licenses: ["Apache 2.0"],
-      links: %{"GitHub" => "https://github.com/cogini/confluent_schema_registry"}
+      links: %{"GitHub" => @github}
     ]
   end
 
   defp docs do
     [
-      source_url: "https://github.com/cogini/confluent_schema_registry",
+      source_url: @github,
       extras: ["README.md"]
     ]
   end
