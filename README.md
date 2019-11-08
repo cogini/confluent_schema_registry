@@ -2,16 +2,43 @@
 
 Elixir client for the [Confluent® Schema Registry](https://www.confluent.io/confluent-schema-registry).
 
-It implements the full [REST API](https://docs.confluent.io/current/schema-registry/develop/api.html).
-
-It uses the [Tesla](https://github.com/teamon/tesla) HTTP client library.
-This supports HTTP authentication and other configuration flexibility, e.g.
-selecting the underlying HTTP library (e.g. Hackney) and SSL.
-
-It includes an ETS cache for results of schema lookups.
+It implements the full [REST API](https://docs.confluent.io/current/schema-registry/develop/api.html) using
+the [Tesla](https://github.com/teamon/tesla) HTTP client library. This gives it support for
+HTTP authentication, SSL/TLS and other configuration flexibility, e.g.
+selecting the underlying HTTP library (e.g. Hackney).
 
 Thanks to [Schemex](https://hex.pm/packages/schemex) and [Avrora](https://github.com/Strech/avrora)
 for inspiration.
+
+## Installation
+
+Add `confluent_schema_registry` to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [{:confluent_schema_registry, "~> 0.1.0"}]
+end
+```
+
+Then run `mix deps.get` to fetch the new dependency.
+
+Documentation is on [HexDocs](https://hexdocs.pm/confluent_schema_registry).
+To generate a local copy, run `mix docs`.
+
+### Optional dependencies
+
+By default, Tesla uses the [httpc](http://erlang.org/doc/man/httpc.html) HTTP client
+which comes with OTP. That library is pretty bare bones, and has issues with
+e.g. validating SSL certificates, so I recommend using [hackney](https://hex.pm/packages/hackney).
+Configure it as documented in [Tesla.Adapter.Hackney](https://hexdocs.pm/tesla/Tesla.Adapter.Hackney.html).
+
+```elixir
+config :tesla, :adapter, Tesla.Adapter.Hackney
+```
+
+[AvroSchema](https://github.com/cogini/avro_schema) provides convenience functions
+to work  with Avro schemas, tag ids, encode/decode data, and cache results for performance
+and reliablilty.
 
 ## Usage
 
@@ -101,86 +128,3 @@ It then decodes the binary using the schema.
 {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, 21)
 ```
 
-### Cache
-
-In long running processes, the schema may be updated, and we should use the latest
-version when reading data. The cache periodically contacts the registry to get
-the latest version of the schema.
-
-Calls to the cache are serialized via the cache GenServer process. This prevents
-a "thundering herd" problem, where multiple processes simultaneously try to
-hit the registry on startup, e.g. one per topic partition.
-
-For a consumer:
-
-```elixir
-{:ok, pid} = ConfluentSchemaRegistry.Cache.start_link([])
-client = ConfluentSchemaRegistry.client()
-
-# Get specific schema id, cached forever
-{:ok, schema} = ConfluentSchemaRegistry.Cache.get_schema(client, 21)
-
-# Get specific latest schema for subject, cached for ttl
-{:ok, reg} = ConfluentSchemaRegistry.Cache.get_schema(client, "test", "latest")
-```
-
-For a producer:
-
-```elixir
-{:ok, pid} = ConfluentSchemaRegistry.Cache.start_link([])
-client = ConfluentSchemaRegistry.client()
-
-# Get result of registration test, cached forever
-{:ok, reg} = ConfluentSchemaRegistry.Cache.is_registered(client, "test", schema)
-
-# Get specific latest schema for subject, cached for ttl
-{:ok, reg} = ConfluentSchemaRegistry.Cache.get_schema(client, "test", "latest")
-```
-
-## Installation
-
-Add `confluent_schema_registry` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [{:confluent_schema_registry, "~> 0.1.0"}]
-end
-```
-
-### Optional dependencies
-
-By default, Tesla uses the [httpc](http://erlang.org/doc/man/httpc.html) HTTP client
-which comes with OTP. It has issues with e.g. validating SSL certificates, so I recommend
-using [hackney](https://hex.pm/packages/hackney). Configure it as documented in
-[Tesla.Adapter.Hackney](https://hexdocs.pm/tesla/Tesla.Adapter.Hackney.html).
-
-In order to encode and decode [Avro]((http://avro.apache.org/)), install
-[erlavro](https://hex.pm/packages/erlavro).
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/confluent_schema_registry](https://hexdocs.pm/confluent_schema_registry).
-
-## Configuration
-
-If you are using the cache, add it to your application's supervision tree:
-
-Add it to your supervision tree:
-
-```elixir
-children = [
-  {ConfluentSchemaRegistry.Cache, [ttl: 3600, refresh_cycle: 60, cache_dir: "/var/cache/myapp"]}
-]
-
-Supervisor.start_link(children, strategy: :one_for_one)
-```
-
-* `_ttl` - Time in seconds to cache lookups for "latest" schemas, default 3600
-* `refresh_cycle` - Time in seconds to check if latest values have changed, default 60
-* `cache_dir` - Directory to use for persistent disk cache, default no cache
-
-You can also configure [Tesla](https://hexdocs.pm/tesla/readme.html), e.g.:
-
-```elixir
-config :tesla, :adapter, Tesla.Adapter.Hackney
-```
