@@ -9,7 +9,6 @@ defmodule ConfluentSchemaRegistry.MixProject do
       version: "0.1.0",
       elixir: "~> 1.8",
       elixirc_paths: elixirc_paths(Mix.env()),
-      build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       description: description(),
       package: package(),
@@ -19,6 +18,16 @@ defmodule ConfluentSchemaRegistry.MixProject do
       docs: docs(),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
+      dialyzer: [
+        # plt_add_deps: :project,
+        # plt_add_deps: :apps_direct,
+        # plt_add_apps: [:ssl, :mnesia, :compiler, :xmerl, :inets, :disk_log],
+        # plt_add_apps: [:erlavro, :tesla],
+        # plt_add_deps: true,
+        # flags: ["-Werror_handling", "-Wrace_conditions"],
+        flags: ["-Wunmatched_returns", :error_handling, :race_conditions, :underspecs],
+        # ignore_warnings: "dialyzer.ignore-warnings"
+      ],
     ]
   end
 
