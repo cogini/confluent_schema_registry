@@ -253,7 +253,7 @@ defmodule ConfluentSchemaRegistry do
   def register_schema(client, subject, schema) do
     case do_post(client, "/subjects/#{subject}/versions", %{schema: schema}) do
       {:ok, %{"id" => value}} -> {:ok, value}
-      {:ok, value} -> {:error, 1, "Unexpected response: " <> value}
+      {:ok, value} -> {:error, 1, "Unexpected response: #{inspect value}"}
       error -> error
     end
   end
