@@ -14,20 +14,17 @@ defmodule ConfluentSchemaRegistry.MixProject do
       package: package(),
       source_url: @github,
       homepage_url: @github,
-      deps: deps(),
       docs: docs(),
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test],
       dialyzer: [
-        # plt_add_deps: :project,
-        # plt_add_deps: :apps_direct,
-        # plt_add_apps: [:ssl, :mnesia, :compiler, :xmerl, :inets, :disk_log],
         # plt_add_apps: [:erlavro, :tesla],
         # plt_add_deps: true,
         # flags: ["-Werror_handling", "-Wrace_conditions"],
         flags: ["-Wunmatched_returns", :error_handling, :race_conditions, :underspecs],
         # ignore_warnings: "dialyzer.ignore-warnings"
       ],
+      deps: deps(),
     ]
   end
 
@@ -74,7 +71,9 @@ defmodule ConfluentSchemaRegistry.MixProject do
   defp docs do
     [
       source_url: @github,
-      extras: ["README.md"]
+      extras: ["README.md", "CHANGELOG.md"],
+      # api_reference: false,
+      source_url_pattern: "#{@github}/blob/master/%{path}#L%{line}",
     ]
   end
 end

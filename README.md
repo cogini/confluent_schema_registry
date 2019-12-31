@@ -127,4 +127,3 @@ It then decodes the binary using the schema.
 ```elixir
 {:ok, schema} = ConfluentSchemaRegistry.get_schema(client, 21)
 ```
-
