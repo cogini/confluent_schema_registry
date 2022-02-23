@@ -22,3 +22,4 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 confluent_schema_registry-*.tar
 
+.DS_Store
