@@ -68,7 +68,7 @@ defmodule ConfluentSchemaRegistry.MixProject do
   defp package do
     [
       maintainers: ["Jake Morrison"],
-      licenses: ["Apache 2.0"],
+      licenses: ["Apache-2.0"],
       links: %{"GitHub" => @github}
     ]
   end
