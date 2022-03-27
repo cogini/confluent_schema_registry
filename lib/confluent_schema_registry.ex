@@ -18,7 +18,7 @@ defmodule ConfluentSchemaRegistry do
 
   Options are:
 
-  * base_url: URL of schema registry (optiona, default "http://localhost:8081")
+  * base_url: URL of schema registry (optional, default "http://localhost:8081")
   * username: username for BasicAuth (optional)
   * password: password for BasicAuth (optional)
   * adapter: Tesla adapter config
