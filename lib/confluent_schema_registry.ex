@@ -40,40 +40,46 @@ defmodule ConfluentSchemaRegistry do
         ]
       }
   """
-  @spec client(Keyword.t) :: Tesla.Client.t
+  @spec client(Keyword.t()) :: Tesla.Client.t()
   def client(opts \\ []) do
     base_url = opts[:base_url] || "http://localhost:8081"
     opts_middleware = opts[:middleware] || []
     adapter = opts[:adapter]
 
-    middleware = opts_middleware ++ [
-      {Tesla.Middleware.BaseUrl, base_url},
-      {Tesla.Middleware.Headers, [
-        {"content-type", "application/vnd.schemaregistry.v1+json"},
-        {"accept", "application/vnd.schemaregistry.v1+json, application/vnd.schemaregistry+json, application/json"}
-      ]},
-      {Tesla.Middleware.JSON, decode_content_types: [
-        "application/vnd.schemaregistry.v1+json",
-        "application/vnd.schemaregistry+json"
-      ]},
-    ] ++ basic_auth(opts)
+    middleware =
+      opts_middleware ++
+        [
+          {Tesla.Middleware.BaseUrl, base_url},
+          {Tesla.Middleware.Headers,
+           [
+             {"content-type", "application/vnd.schemaregistry.v1+json"},
+             {"accept",
+              "application/vnd.schemaregistry.v1+json, application/vnd.schemaregistry+json, application/json"}
+           ]},
+          {Tesla.Middleware.JSON,
+           decode_content_types: [
+             "application/vnd.schemaregistry.v1+json",
+             "application/vnd.schemaregistry+json"
+           ]}
+        ] ++ basic_auth(opts)
 
     Tesla.client(middleware, adapter)
   end
 
   # Configure Tesla.Middleware.BasicAuth
-  @spec basic_auth(Keyword.t) :: [{Tesla.Middleware.BasicAuth, map}]
+  @spec basic_auth(Keyword.t()) :: [{Tesla.Middleware.BasicAuth, map}]
   defp basic_auth(opts) do
     if opts[:username] do
-      auth_opts = opts
-                  |> Keyword.take([:username, :password])
-                  |> Map.new()
+      auth_opts =
+        opts
+        |> Keyword.take([:username, :password])
+        |> Map.new()
+
       [{Tesla.Middleware.BasicAuth, auth_opts}]
     else
       []
     end
   end
-
 
   @doc ~S"""
   Get the schema string identified by the input ID.
@@ -88,7 +94,7 @@ defmodule ConfluentSchemaRegistry do
       {:ok, "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}"}
 
   """
-  @spec get_schema(Tesla.Client.t, id) :: {:ok, schema} | {:error, code, reason}
+  @spec get_schema(Tesla.Client.t(), id) :: {:ok, schema} | {:error, code, reason}
   def get_schema(client, id) when is_integer(id) do
     case do_get(client, "/schemas/ids/#{id}") do
       {:ok, %{"schema" => value}} -> {:ok, value}
@@ -110,7 +116,7 @@ defmodule ConfluentSchemaRegistry do
       {:ok, ["test"]}
 
   """
-  @spec get_subjects(Tesla.Client.t) :: {:ok, list(subject)} | {:error, code, reason}
+  @spec get_subjects(Tesla.Client.t()) :: {:ok, list(subject)} | {:error, code, reason}
   def get_subjects(client) do
     case do_get(client, "/subjects") do
       {:ok, _} = result -> result
@@ -129,7 +135,7 @@ defmodule ConfluentSchemaRegistry do
 
   Returns list of integer ids.
   """
-  @spec get_versions(Tesla.Client.t, subject) :: {:ok, list(id)} | {:error, code, reason}
+  @spec get_versions(Tesla.Client.t(), subject) :: {:ok, list(id)} | {:error, code, reason}
   def get_versions(client, subject) do
     case do_get(client, "/subjects/#{subject}/versions") do
       {:ok, _} = result -> result
@@ -152,7 +158,7 @@ defmodule ConfluentSchemaRegistry do
       {:ok, [1]}
 
   """
-  @spec delete_subject(Tesla.Client.t, subject) :: {:ok, list(id)} | {:error, code, reason}
+  @spec delete_subject(Tesla.Client.t(), subject) :: {:ok, list(id)} | {:error, code, reason}
   def delete_subject(client, subject) do
     case do_delete(client, "/subjects/#{subject}") do
       {:ok, _} = result -> result
@@ -210,8 +216,8 @@ defmodule ConfluentSchemaRegistry do
        }}
 
   """
-  @spec get_schema(Tesla.Client.t, subject, version) ::
-    {:ok, map} | {:error, code, reason}
+  @spec get_schema(Tesla.Client.t(), subject, version) ::
+          {:ok, map} | {:error, code, reason}
   def get_schema(client, subject, version \\ "latest") do
     case do_get(client, "/subjects/#{subject}/versions/#{version}") do
       {:ok, _} = result -> result
@@ -249,11 +255,11 @@ defmodule ConfluentSchemaRegistry do
       {:ok, 21}
 
   """
-  @spec register_schema(Tesla.Client.t, subject, schema) :: {:ok, id} | {:error, code, reason}
+  @spec register_schema(Tesla.Client.t(), subject, schema) :: {:ok, id} | {:error, code, reason}
   def register_schema(client, subject, schema) do
     case do_post(client, "/subjects/#{subject}/versions", %{schema: schema}) do
       {:ok, %{"id" => value}} -> {:ok, value}
-      {:ok, value} -> {:error, 1, "Unexpected response: #{inspect value}"}
+      {:ok, value} -> {:error, 1, "Unexpected response: #{inspect(value)}"}
       error -> error
     end
   end
@@ -303,7 +309,7 @@ defmodule ConfluentSchemaRegistry do
       {:error, 404, %{"error_code" => 40401, "message" => "Subject not found. ..."}}
 
   """
-  @spec is_registered(Tesla.Client.t, subject, schema) :: {:ok, map} | {:error, code, reason}
+  @spec is_registered(Tesla.Client.t(), subject, schema) :: {:ok, map} | {:error, code, reason}
   def is_registered(client, subject, schema) do
     case do_post(client, "/subjects/#{subject}", %{schema: schema}) do
       {:ok, _} = result -> result
@@ -325,11 +331,11 @@ defmodule ConfluentSchemaRegistry do
 
   Returns integer id of deleted version.
   """
-  @spec delete_version(Tesla.Client.t, subject, version) :: {:ok, id} | {:error, code, reason}
+  @spec delete_version(Tesla.Client.t(), subject, version) :: {:ok, id} | {:error, code, reason}
   def delete_version(client, subject, version \\ "latest") do
     case do_delete(client, "/subjects/#{subject}/versions/#{version}") do
       {:ok, value} when is_integer(value) -> {:ok, value}
-      {:ok, value} -> {:error, 1, "Unexpected response: #{inspect value}"}
+      {:ok, value} -> {:error, 1, "Unexpected response: #{inspect(value)}"}
       error -> error
     end
   end
@@ -357,9 +363,12 @@ defmodule ConfluentSchemaRegistry do
       {:ok, true}
 
   """
-  @spec is_compatible(Tesla.Client.t, subject, schema, version) :: {:ok, boolean} | {:error, code, reason}
+  @spec is_compatible(Tesla.Client.t(), subject, schema, version) ::
+          {:ok, boolean} | {:error, code, reason}
   def is_compatible(client, subject, schema, version \\ "latest") do
-    case do_post(client, "/compatibility/subjects/#{subject}/versions/#{version}", %{schema: schema}) do
+    case do_post(client, "/compatibility/subjects/#{subject}/versions/#{version}", %{
+           schema: schema
+         }) do
       {:ok, %{"is_compatible" => value}} -> {:ok, value}
       {:ok, value} -> {:error, 1, "Unexpected response: " <> value}
       error -> error
@@ -382,8 +391,8 @@ defmodule ConfluentSchemaRegistry do
       {:ok, "FULL"}
 
   """
-  @spec update_compatibility(Tesla.Client.t, level) :: {:ok, level} | {:error, code, reason}
-    when level: binary, code: non_neg_integer, reason: any
+  @spec update_compatibility(Tesla.Client.t(), level) :: {:ok, level} | {:error, code, reason}
+        when level: binary, code: non_neg_integer, reason: any
   def update_compatibility(client, level) do
     case do_put(client, "/config", %{compatibility: level}) do
       {:ok, %{"compatibility" => value}} -> {:ok, value}
@@ -408,12 +417,12 @@ defmodule ConfluentSchemaRegistry do
       {:ok, "BACKWARD"}
 
   """
-  @spec get_compatibility(Tesla.Client.t) :: {:ok, level} | {:error, code, reason}
-    when level: binary, code: non_neg_integer, reason: any
+  @spec get_compatibility(Tesla.Client.t()) :: {:ok, level} | {:error, code, reason}
+        when level: binary, code: non_neg_integer, reason: any
   def get_compatibility(client) do
     case do_get(client, "/config") do
       {:ok, %{"compatibilityLevel" => value}} -> {:ok, value}
-      {:ok, value} -> {:error, 1, "Unexpected response: #{inspect value}"}
+      {:ok, value} -> {:error, 1, "Unexpected response: #{inspect(value)}"}
       error -> error
     end
   end
@@ -434,12 +443,12 @@ defmodule ConfluentSchemaRegistry do
       {:ok, "FULL"}
 
   """
-  @spec update_compatibility(Tesla.Client.t, subject, level) ::
-    {:ok, level} | {:error, code, reason}
+  @spec update_compatibility(Tesla.Client.t(), subject, level) ::
+          {:ok, level} | {:error, code, reason}
   def update_compatibility(client, subject, level) do
     case do_put(client, "/config/#{subject}", %{compatibility: level}) do
       {:ok, %{"compatibility" => value}} -> {:ok, value}
-      {:ok, value} -> {:error, 1, "Unexpected response: #{inspect value}"}
+      {:ok, value} -> {:error, 1, "Unexpected response: #{inspect(value)}"}
       error -> error
     end
   end
@@ -460,8 +469,8 @@ defmodule ConfluentSchemaRegistry do
       {:ok, "FULL"}
 
   """
-  @spec get_compatibility(Tesla.Client.t, subject) ::
-    {:ok, level} | {:error, code, reason}
+  @spec get_compatibility(Tesla.Client.t(), subject) ::
+          {:ok, level} | {:error, code, reason}
   def get_compatibility(client, subject) do
     case do_get(client, "/config/#{subject}") do
       {:ok, %{"compatibilityLevel" => value}} -> {:ok, value}
@@ -470,40 +479,43 @@ defmodule ConfluentSchemaRegistry do
     end
   end
 
-
   # Internal utility functions
 
-  @spec do_get(Tesla.Client.t, binary) :: {:ok, any} | {:error, code, reason}
+  @spec do_get(Tesla.Client.t(), binary) :: {:ok, any} | {:error, code, reason}
   defp do_get(client, url) do
     tesla_response(Tesla.get(client, url))
   end
 
-  @spec do_delete(Tesla.Client.t, binary) :: {:ok, any} | {:error, code, reason}
+  @spec do_delete(Tesla.Client.t(), binary) :: {:ok, any} | {:error, code, reason}
   defp do_delete(client, url) do
     tesla_response(Tesla.delete(client, url))
   end
 
-  @spec do_post(Tesla.Client.t, binary, any) :: {:ok, any} | {:error, code, reason}
+  @spec do_post(Tesla.Client.t(), binary, any) :: {:ok, any} | {:error, code, reason}
   defp do_post(client, url, data) when is_binary(data) do
     tesla_response(Tesla.post(client, url, data))
   end
+
   defp do_post(client, url, data) do
     case Jason.encode(data) do
       {:ok, encoded} ->
         do_post(client, url, encoded)
+
       {:error, reason} ->
         {:error, 0, reason}
     end
   end
 
-  @spec do_put(Tesla.Client.t, binary, any) :: {:ok, any} | {:error, code, reason}
+  @spec do_put(Tesla.Client.t(), binary, any) :: {:ok, any} | {:error, code, reason}
   defp do_put(client, url, data) when is_binary(data) do
     tesla_response(Tesla.put(client, url, data))
   end
+
   defp do_put(client, url, data) do
     case Jason.encode(data) do
       {:ok, encoded} ->
         do_put(client, url, encoded)
+
       {:error, reason} ->
         {:error, 0, reason}
     end
@@ -512,5 +524,4 @@ defmodule ConfluentSchemaRegistry do
   defp tesla_response({:ok, %{status: 200, body: body}}), do: {:ok, body}
   defp tesla_response({:ok, %{status: status, body: body}}), do: {:error, status, body}
   defp tesla_response({:error, reason}), do: {:error, 0, reason}
-
 end
