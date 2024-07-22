@@ -1,5 +1,4 @@
 defmodule ClientLiveTest do
-
   use ExUnit.Case
 
   @moduletag :live
@@ -15,7 +14,8 @@ defmodule ClientLiveTest do
   end
 
   test "live", %{client: client} do
-    schema = "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}"
+    schema =
+      "{\"type\":\"record\",\"name\":\"test\",\"fields\":[{\"name\":\"field1\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"}]}"
 
     assert {:ok, "BACKWARD"} == ConfluentSchemaRegistry.get_compatibility(client)
 
@@ -33,7 +33,8 @@ defmodule ClientLiveTest do
 
     # assert {:ok, "FULL"} == ConfluentSchemaRegistry.update_compatibility(client, "FULL")
 
-    assert {:ok, true} == ConfluentSchemaRegistry.is_compatible(client, "test", schema) # latest
+    # latest
+    assert {:ok, true} == ConfluentSchemaRegistry.is_compatible(client, "test", schema)
     # assert {:ok, true} == ConfluentSchemaRegistry.is_compatible(client, "test", schema, 1)
 
     assert {:ok, schema} == ConfluentSchemaRegistry.get_schema(client, 21)

@@ -53,8 +53,7 @@ defmodule ConfluentSchemaRegistry do
           {Tesla.Middleware.Headers,
            [
              {"content-type", "application/vnd.schemaregistry.v1+json"},
-             {"accept",
-              "application/vnd.schemaregistry.v1+json, application/vnd.schemaregistry+json, application/json"}
+             {"accept", "application/vnd.schemaregistry.v1+json, application/vnd.schemaregistry+json, application/json"}
            ]},
           {Tesla.Middleware.JSON,
            decode_content_types: [
@@ -62,8 +61,6 @@ defmodule ConfluentSchemaRegistry do
              "application/vnd.schemaregistry+json"
            ]}
         ] ++ basic_auth(opts)
-
-    Tesla.client(middleware, adapter)
   end
 
   # Configure Tesla.Middleware.BasicAuth

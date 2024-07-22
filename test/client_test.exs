@@ -1,5 +1,4 @@
 defmodule ClientTest do
-
   use ExUnit.Case
 
   import Tesla.Mock
@@ -10,64 +9,81 @@ defmodule ClientTest do
   setup do
     client = ConfluentSchemaRegistry.client(adapter: Tesla.Mock)
 
-    mock fn
+    mock(fn
       %{method: :get, url: "http://localhost:8081/schemas/ids/1"} ->
         json(%{"schema" => "{\"type\": \"string\"}"})
+
       %{method: :get, url: "http://localhost:8081/subjects"} ->
         json(["subject1", "subject2"])
+
       %{method: :get, url: "http://localhost:8081/subjects/test/versions"} ->
         json([1, 2, 3, 4])
+
       %{method: :delete, url: "http://localhost:8081/subjects/test"} ->
         json([1, 2, 3, 4])
+
       %{method: :get, url: "http://localhost:8081/subjects/test/versions/1"} ->
         json(%{"name" => "test", "version" => 1, "schema" => "{\"type\": \"string\"}"})
+
       %{method: :get, url: "http://localhost:8081/subjects/test/versions/latest"} ->
         json(%{"name" => "test", "version" => 1, "schema" => "{\"type\": \"string\"}"})
+
       %{method: :get, url: "http://localhost:8081/subjects/test/versions/1/schema"} ->
         %Tesla.Env{status: 200, body: "{\"type\": \"string\"}"}
+
       %{method: :post, url: "http://localhost:8081/subjects/test/versions"} ->
         json(%{"id" => 1})
+
       %{method: :post, url: "http://localhost:8081/subjects/test"} ->
         response = %{
-           "subject" => "test",
-           "id" => 1,
-           "version" => 3,
-           "schema" => """
-           {
-             \"type\": \"record\",
-             \"name\": \"test\",
-             \"fields\":
-               [
-                 {
-                   \"type\": \"string\",
-                   \"name\": \"field1\"
-                 },
-                 {
-                   \"type\": \"int\",
-                   \"name\": \"field2\"
-                 }
-               ]
-           }
-           """
+          "subject" => "test",
+          "id" => 1,
+          "version" => 3,
+          "schema" => """
+          {
+            \"type\": \"record\",
+            \"name\": \"test\",
+            \"fields\":
+              [
+                {
+                  \"type\": \"string\",
+                  \"name\": \"field1\"
+                },
+                {
+                  \"type\": \"int\",
+                  \"name\": \"field2\"
+                }
+              ]
+          }
+          """
         }
+
         json(response)
+
       %{method: :delete, url: "http://localhost:8081/subjects/test/versions/1"} ->
         %Tesla.Env{status: 200, body: 1}
+
       %{method: :delete, url: "http://localhost:8081/subjects/test/versions/latest"} ->
         %Tesla.Env{status: 200, body: 1}
+
       %{method: :post, url: "http://localhost:8081/compatibility/subjects/test/versions/latest"} ->
         json(%{"is_compatible" => true})
+
       %{method: :post, url: "http://localhost:8081/compatibility/subjects/test/versions/1"} ->
         json(%{"is_compatible" => true})
+
       %{method: :put, url: "http://localhost:8081/config"} ->
         json(%{"compatibility" => "FULL"})
+
       %{method: :get, url: "http://localhost:8081/config"} ->
         json(%{"compatibilityLevel" => "FULL"})
+
       %{method: :put, url: "http://localhost:8081/config/test"} ->
         json(%{"compatibility" => "FULL"})
+
       %{method: :get, url: "http://localhost:8081/config/test"} ->
         json(%{"compatibilityLevel" => "FULL"})
-    end
+    end)
 
     {:ok, client: client}
   end
@@ -102,7 +118,11 @@ defmodule ClientTest do
   end
 
   test "is_registered", %{client: client} do
-    response = %{"subject" => "test", "id" => 1, "version" => 3, "schema" => """
+    response = %{
+      "subject" => "test",
+      "id" => 1,
+      "version" => 3,
+      "schema" => """
       {
         \"type\": \"record\",
         \"name\": \"test\",
@@ -120,16 +140,19 @@ defmodule ClientTest do
       }
       """
     }
+
     assert {:ok, response} == ConfluentSchemaRegistry.is_registered(client, "test", "schema")
   end
 
   test "delete_version", %{client: client} do
-    assert {:ok, 1} == ConfluentSchemaRegistry.delete_version(client, "test") # latest
+    # latest
+    assert {:ok, 1} == ConfluentSchemaRegistry.delete_version(client, "test")
     assert {:ok, 1} == ConfluentSchemaRegistry.delete_version(client, "test", 1)
   end
 
   test "is_compatible", %{client: client} do
-    assert {:ok, true} == ConfluentSchemaRegistry.is_compatible(client, "test", "schema") # latest
+    # latest
+    assert {:ok, true} == ConfluentSchemaRegistry.is_compatible(client, "test", "schema")
     assert {:ok, true} == ConfluentSchemaRegistry.is_compatible(client, "test", "schema", 1)
   end
 
@@ -148,5 +171,4 @@ defmodule ClientTest do
   test "get_compatibility subject", %{client: client} do
     assert {:ok, "FULL"} == ConfluentSchemaRegistry.get_compatibility(client, "test")
   end
-
 end
