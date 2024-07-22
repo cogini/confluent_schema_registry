@@ -61,6 +61,8 @@ defmodule ConfluentSchemaRegistry do
              "application/vnd.schemaregistry+json"
            ]}
         ] ++ basic_auth(opts)
+
+    Tesla.client(middleware, adapter)
   end
 
   # Configure Tesla.Middleware.BasicAuth
